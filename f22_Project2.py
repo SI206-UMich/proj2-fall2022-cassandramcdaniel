@@ -1,3 +1,4 @@
+from urllib import request
 from xml.sax import parseString
 from bs4 import BeautifulSoup
 import re
@@ -25,7 +26,62 @@ def get_listings_from_search_results(html_file):
         ('Loft in Mission District', 210, '1944564'),  # example
     ]
     """
-    pass
+
+    content = open(html_file, 'r')
+    content2 = content.read()
+    soup = BeautifulSoup(content2, 'html.parser')
+    
+    return_list = []
+
+    #get the titles 
+    tag1 = soup.find_all('div', class_ = "t1jojoys dir dir-ltr")
+    title_list = []
+    var = []
+    for i in tag1:
+        var = str(i).split(">")
+        x = var[1].split('<')
+        title_list.append(x[0])
+
+    #list of prices 
+    tag2 = soup.find_all('span', class_ = "_tyxjp1") 
+    strtag2 = str(tag2)
+    price_list = []
+
+    cost = 0
+    for i in tag2:
+        cost = i.text.lstrip('$')
+        price_list.append(int(cost))
+        
+        
+    string_id_list = []
+    tag3 = soup.find_all('meta', itemprop = "url")
+
+    # TODO: this needs fixing because of the "plus" parts of this  
+    for i in tag3:
+        stri = str(i)
+        id = stri.split('/')
+        boolplus = False
+        for j in id:
+            if j == 'plus':
+                boolplus = True 
+                
+        if boolplus == True:
+            x = id[3].split('?')
+            string_id_list.append(x[0])
+        else:
+            x = id[2].split('?')
+            string_id_list.append(x[0])
+
+    #make the tuples into the final list 
+
+    
+    for i in range(0,len(string_id_list)):
+        tup = (title_list[i], price_list[i], string_id_list[i])
+        return_list.append(tup)
+
+    # print(string_id_list)
+    content.close()
+    return return_list
 
 
 def get_listing_information(listing_id):
@@ -52,8 +108,102 @@ def get_listing_information(listing_id):
         number of bedrooms
     )
     """
-    pass
+    '''examples of policy numbers
+    #     STR-0001541
+    #     2022-004088STR
+    #     2022-004088STR
+    #     STR-0004333
+    #     "STR-0000051"
+    # '''
 
+
+    f = "html_files/listing_" + listing_id + ".html"
+
+    # f = "html_files/listing_1944564.html"
+    # 1944564
+    # f = "html_files/listing_32871760.html"
+    # 32871760
+    content = open(f, 'r')
+    content2 = content.read()
+    soup = BeautifulSoup(content2, 'html.parser')
+
+    policy_number = ""
+    x = soup.find('li', class_ ="f19phm7j dir dir-ltr")
+    x = str(x)
+    x = x.split(">")
+    x = x[2].split("<")
+    x = x[0]
+    # use a regex
+    # print(x)
+    if ("STR" in x) and (x.startswith("L") == False):
+        policy_number = x
+    elif ("pending" in x) or ("Pending" in x):
+        policy_number = "Pending"
+    else:
+        policy_number = "Exempt"
+
+    place_type = ""
+    tag_place_type = soup.find('meta', property = "og:description")
+
+    tag_place_type = str(tag_place_type)
+    list_tag_place_type = tag_place_type.split()
+    final_place_type = ""
+    
+    booltype = False 
+
+
+    if ("private" in list_tag_place_type[1]) or ("Private" in list_tag_place_type[1]):
+        final_place_type = "Private Room"
+        booltype = True 
+    if ("shared" in list_tag_place_type[1]) or ("Shared" in list_tag_place_type[1]):
+            final_place_type = "Shared Room"
+            booltype = True 
+    
+    if booltype == False:
+        final_place_type = "Entire Room"
+    '''  
+    for i in list_tag_place_type:
+        if ("private" in i[1]) or ("Private" in i[1]):
+            final_place_type = "Private Room"
+            booltype = True 
+        if ("shared" in i) or ("Shared" in i):
+            final_place_type = "Shared Room"
+            booltype = True 
+    
+    if booltype == False:
+        final_place_type = "Entire Room"
+    '''
+
+    tag_num_bedrooms = soup.find('div', class_ = "_tqmy57")
+    tag_num_bedrooms = str(tag_num_bedrooms)
+    tag_num_bedrooms = tag_num_bedrooms.split("<")
+    new_str = ""
+    for i in tag_num_bedrooms:
+        
+        if ("bedroom" in i) or ("studio" in i) or ("bed" in i):
+            new_str = i
+    
+    
+    new_str = new_str.split(">")
+
+    if len(new_str) > 1:
+        new_str = new_str[1]
+        new_str = new_str.split()
+        new_str = (new_str[0])
+   
+    new_str = str(new_str)
+
+    # print(new_str)
+    if new_str != "['']":
+        ret_tuple = (policy_number, final_place_type, int(new_str))
+    else:
+        ret_tuple = (policy_number, final_place_type, (new_str))
+    content.close()
+    
+    return ret_tuple
+    #pass  
+    
+    
 
 def get_detailed_listing_database(html_file):
     """
@@ -68,8 +218,27 @@ def get_detailed_listing_database(html_file):
         (Listing Title 2,Cost 2,Listing ID 2,Policy Number 2,Place Type 2,Number of Bedrooms 2),
         ...
     ]
+
+
     """
-    pass
+    
+    # get_listing_information
+    # f = "html_files/listing_1944564.html"
+    return_list = []
+    listings = get_listings_from_search_results(html_file)
+    # listings = get_listings_from_search_results(f)
+    len_listings = len(listings)
+    for i in range(0,len_listings):
+        tup1 = (listings[i])
+        tup2 = get_listing_information(tup1[2])
+        tup3 = tup1 + tup2 
+        return_list.append(tup3)
+
+
+    return return_list
+    
+ 
+
 
 
 def write_csv(data, filename):
@@ -94,7 +263,25 @@ def write_csv(data, filename):
 
     This function should not return anything.
     """
-    pass
+
+    data.sort(key = lambda x:x[1])
+    fout = open(filename, 'w')
+    writer = csv.writer(fout)
+
+    writer.writerow(["Listing Title", "Cost", "Listing ID", "Policy Number", "Place Type", "Number of Bedrooms"])
+    index = 0
+    l = []
+    for i in data:
+        for j in i:
+            l.append(str(j))
+        writer.writerow(l)
+        l = []
+
+
+    fout.close()
+     
+
+
 
 
 def check_policy_numbers(data):
@@ -116,6 +303,35 @@ def check_policy_numbers(data):
     ]
 
     """
+    
+    #use this 
+    # regex1 = "(20[0-9]{2}-00[0-9]{4}STR)|(STR-000[0-9]{4})"
+    # regex1 = "^20[0-9]{2}-00[0-9]{4}STR$"
+
+
+    # ret_list = []
+    # for i in data: #goes through each tuple 
+    #     print(i)
+    #     s = i[3]
+    #     print(s)
+    #     res = re.findall(s, regex1)
+    #     print(res)  
+        # ret_list.append(s)
+        
+
+        # if s.lower().find("pending") == True:
+        #     continue
+        # if s.lower().find("exempt") == True:
+        #     continue
+        # #TO DO: fix the regex 
+        # res1 = re.finall(str_match1, s)
+        # res2 = re.finall(str_match2, s)
+        # if len(res1) == 0 and len(res2) == 0:
+        #     ret_list.append(s)
+
+    # print(ret_list)
+     
+    # return ret_list
     pass
 
 
@@ -133,9 +349,45 @@ def extra_credit(listing_id):
     gone over their 90 day limit, else return True, indicating the lister has
     never gone over their limit.
     """
-    pass
+    # url = "html_files/listing_" + str(listing_id)+".html"
+    # https://www.airbnb.com/rooms/1623609
+    
+    # doc = BeautifulSoup(f,"html.parser")
+    # print(doc.prettify())
+    f = open("html_files/listing_" + str(listing_id) + "_reviews.html", "r")
 
+    # f.read("listing_" + str(listing_id) + "_reviews.html")
+    lines =f.readlines()
+    count = 0
+    for line in lines:
+        if "October" in line:
+            print(line)
+            count += 1
+    print(count)
 
+    #put all the months and years into a list  
+    #find the lowest per and highest year 
+    #make a list of that length
+    #make a count var
+    #while still on each year, count how many reviews per year
+    #if count is ever greater than 90, return False
+    #else return True
+
+    # import requests as rq
+    # #url = "https://www.airbnb.com/rooms/" +  " 1944564" +"/reviews"
+    # url = "https://www.airbnb.com/rooms/1944564/reviews?source_impression_id=p3_1668045192_kz69%2FW7WXd2zh9xq"
+    # HEADERS = ({
+    # 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 44.0.2403.157 Safari / 537.36',
+    # 'Accept-Language': 'en-US, en;q=0.5'})
+    # page_reviews = rq.get(url, headers=HEADERS)
+    # doc = BeautifulSoup(page_reviews.text,"html.parser")
+    # html_to_write = doc.prettify()
+    # f = open("test.html", "w")
+    # f.write(html_to_write)
+    # f.close()
+  
+
+# str(listing_id)
 class TestCases(unittest.TestCase):
 
     def test_get_listings_from_search_results(self):
@@ -147,11 +399,24 @@ class TestCases(unittest.TestCase):
         # check that the variable you saved after calling the function is a list
         self.assertEqual(type(listings), list)
         # check that each item in the list is a tuple
+        for i in range(0, len(listings)):
+            # print(type(i))
+            # print(type(listings[i]))
+            self.assertEqual(type(listings[i]), tuple)
 
         # check that the first title, cost, and listing id tuple is correct (open the search results html and find it)
-
+        #title 
+        self.assertEqual(listings[0], ("Loft in Mission District", 210, '1944564'))
+        # # cost 
+        # self.assertEqual(listings[0][1], 210)
+        # #listing id
+        # self.assertEqual(listings[0][2], "1944564")
+        
         # check that the last title is correct (open the search results html and find it)
-        pass
+        self.assertEqual(listings[-1][0], "Guest suite in Mission District")
+        # self.assertEqual(listings[-1][1], 238)
+        # self.assertEqual(listings[-1][2], "32871760")
+
 
     def test_get_listing_information(self):
         html_list = ["1623609",
@@ -174,12 +439,11 @@ class TestCases(unittest.TestCase):
             # check that the third element in the tuple is an int
             self.assertEqual(type(listing_information[2]), int)
         # check that the first listing in the html_list has policy number 'STR-0001541'
-
+        self.assertEqual(listing_informations[0][0], 'STR-0001541')
         # check that the last listing in the html_list is a "Private Room"
-
+        self.assertEqual(listing_informations[4][1], "Private Room")
         # check that the third listing has one bedroom
-
-        pass
+        self.assertEqual(listing_informations[2][2], 1)
 
     def test_get_detailed_listing_database(self):
         # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
@@ -191,14 +455,16 @@ class TestCases(unittest.TestCase):
             # assert each item in the list of listings is a tuple
             self.assertEqual(type(item), tuple)
             # check that each tuple has a length of 6
+            self.assertEqual(len(item), 6)
 
         # check that the first tuple is made up of the following:
         # 'Loft in Mission District', 210, '1944564', '2022-004088STR', 'Entire Room', 1
+        self.assertEqual(detailed_database[0], ('Loft in Mission District', 210, '1944564', '2022-004088STR', 'Entire Room', 1))
 
         # check that the last tuple is made up of the following:
         # 'Guest suite in Mission District', 238, '32871760', 'STR-0004707', 'Entire Room', 1
+        self.assertEqual(detailed_database[-1], ('Guest suite in Mission District', 238, '32871760', 'STR-0004707', 'Entire Room', 1))
 
-        pass
 
     def test_write_csv(self):
         # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
@@ -215,31 +481,37 @@ class TestCases(unittest.TestCase):
         # check that there are 21 lines in the csv
         self.assertEqual(len(csv_lines), 21)
         # check that the header row is correct
-
+        self.assertEqual(csv_lines[0], ["Listing Title","Cost","Listing ID","Policy Number","Place Type","Number of Bedrooms"])
         # check that the next row is Private room in Mission District,82,51027324,Pending,Private Room,1
+    
+        self.assertEqual((csv_lines[1]), ["Private room in Mission District","82","51027324","Pending","Private Room","1"])
+
 
         # check that the last row is Apartment in Mission District,399,28668414,Pending,Entire Room,2
+        self.assertEqual(csv_lines[-1], ["Apartment in Mission District","399","28668414","Pending","Entire Room","2"])
 
-        pass
 
-    def test_check_policy_numbers(self):
-        # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
-        # and save the result to a variable
-        detailed_database = get_detailed_listing_database("html_files/mission_district_search_results.html")
-        # call check_policy_numbers on the variable created above and save the result as a variable
-        invalid_listings = check_policy_numbers(detailed_database)
-        # check that the return value is a list
-        self.assertEqual(type(invalid_listings), list)
-        # check that there is exactly one element in the string
-
-        # check that the element in the list is a string
-
-        # check that the first element in the list is '16204265'
-        pass
-
+    # def test_check_policy_numbers(self):
+    #     # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
+    #     # and save the result to a variable
+    #     detailed_database = get_detailed_listing_database("html_files/mission_district_search_results.html")
+    #     # call check_policy_numbers on the variable created above and save the result as a variable
+    #     invalid_listings = check_policy_numbers(detailed_database)
+    #     # check that the return value is a list
+    #     self.assertEqual(type(invalid_listings), list)
+    #     # check that there is exactly one element in the string
+    #     self.assertEqual(len(invalid_listings), 1)
+    #     # check that the element in the list is a string
+    #     self.assertEqual(type(invalid_listings[0]), str)
+    #     # check that the first element in the list is '16204265'
+        
+    #     # TO DO check it is not anything nested that needs invalid_listings[][] 
+    #     self.assertEqual(invalid_listings[0], "16204265")
+        
 
 if __name__ == '__main__':
     database = get_detailed_listing_database("html_files/mission_district_search_results.html")
     write_csv(database, "airbnb_dataset.csv")
+    extra_credit(1944564)
     check_policy_numbers(database)
     unittest.main(verbosity=2)
