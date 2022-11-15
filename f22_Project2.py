@@ -6,6 +6,11 @@ import os
 import csv
 import unittest
 
+# Your name: Cassandra 
+# Your student id: 2551 6619
+# Your email: cassmcda@umich.edu
+# List who you have worked with on this project: Rachel Abellera, Cristina Costin
+
 
 def get_listings_from_search_results(html_file):
     """
@@ -30,10 +35,7 @@ def get_listings_from_search_results(html_file):
     content = open(html_file, 'r')
     content2 = content.read()
     soup = BeautifulSoup(content2, 'html.parser')
-    
     return_list = []
-
-    #get the titles 
     tag1 = soup.find_all('div', class_ = "t1jojoys dir dir-ltr")
     title_list = []
     var = []
@@ -56,7 +58,6 @@ def get_listings_from_search_results(html_file):
     string_id_list = []
     tag3 = soup.find_all('meta', itemprop = "url")
 
-    # TODO: this needs fixing because of the "plus" parts of this  
     for i in tag3:
         stri = str(i)
         id = stri.split('/')
@@ -79,7 +80,6 @@ def get_listings_from_search_results(html_file):
         tup = (title_list[i], price_list[i], string_id_list[i])
         return_list.append(tup)
 
-    # print(string_id_list)
     content.close()
     return return_list
 
@@ -118,11 +118,6 @@ def get_listing_information(listing_id):
 
 
     f = "html_files/listing_" + listing_id + ".html"
-
-    # f = "html_files/listing_1944564.html"
-    # 1944564
-    # f = "html_files/listing_32871760.html"
-    # 32871760
     content = open(f, 'r')
     content2 = content.read()
     soup = BeautifulSoup(content2, 'html.parser')
@@ -133,9 +128,13 @@ def get_listing_information(listing_id):
     x = x.split(">")
     x = x[2].split("<")
     x = x[0]
-    # use a regex
-    # print(x)
-    if ("STR" in x) and (x.startswith("L") == False):
+
+    boolexempt = False
+    
+    if x.isdigit() == True:
+        boolexempt = True
+
+    if (("STR" in x) and (x.startswith("L") == False)) or ((boolexempt == True) and (x.startswith("L") == False)):
         policy_number = x
     elif ("pending" in x) or ("Pending" in x):
         policy_number = "Pending"
@@ -161,18 +160,6 @@ def get_listing_information(listing_id):
     
     if booltype == False:
         final_place_type = "Entire Room"
-    '''  
-    for i in list_tag_place_type:
-        if ("private" in i[1]) or ("Private" in i[1]):
-            final_place_type = "Private Room"
-            booltype = True 
-        if ("shared" in i) or ("Shared" in i):
-            final_place_type = "Shared Room"
-            booltype = True 
-    
-    if booltype == False:
-        final_place_type = "Entire Room"
-    '''
 
     tag_num_bedrooms = soup.find('div', class_ = "_tqmy57")
     tag_num_bedrooms = str(tag_num_bedrooms)
@@ -193,15 +180,12 @@ def get_listing_information(listing_id):
    
     new_str = str(new_str)
 
-    # print(new_str)
-    if new_str != "['']":
-        ret_tuple = (policy_number, final_place_type, int(new_str))
-    else:
-        ret_tuple = (policy_number, final_place_type, (new_str))
+    
+    ret_tuple = (policy_number, final_place_type, int(new_str))
+
     content.close()
     
-    return ret_tuple
-    #pass  
+    return ret_tuple 
     
     
 
@@ -222,11 +206,9 @@ def get_detailed_listing_database(html_file):
 
     """
     
-    # get_listing_information
-    # f = "html_files/listing_1944564.html"
+
     return_list = []
     listings = get_listings_from_search_results(html_file)
-    # listings = get_listings_from_search_results(f)
     len_listings = len(listings)
     for i in range(0,len_listings):
         tup1 = (listings[i])
@@ -303,36 +285,19 @@ def check_policy_numbers(data):
     ]
 
     """
+
+
+    ret_list = []
+
+    for i in data: #goes through each tuple 
+        if i[3] != "Pending" and i[3] != "Exempt":
+            if i[3].startswith("STR") or i[3].endswith("STR"):
+                continue
+            else:
+                ret_list.append(i[2])
+            
+    return ret_list
     
-    #use this 
-    # regex1 = "(20[0-9]{2}-00[0-9]{4}STR)|(STR-000[0-9]{4})"
-    # regex1 = "^20[0-9]{2}-00[0-9]{4}STR$"
-
-
-    # ret_list = []
-    # for i in data: #goes through each tuple 
-    #     print(i)
-    #     s = i[3]
-    #     print(s)
-    #     res = re.findall(s, regex1)
-    #     print(res)  
-        # ret_list.append(s)
-        
-
-        # if s.lower().find("pending") == True:
-        #     continue
-        # if s.lower().find("exempt") == True:
-        #     continue
-        # #TO DO: fix the regex 
-        # res1 = re.finall(str_match1, s)
-        # res2 = re.finall(str_match2, s)
-        # if len(res1) == 0 and len(res2) == 0:
-        #     ret_list.append(s)
-
-    # print(ret_list)
-     
-    # return ret_list
-    pass
 
 
 def extra_credit(listing_id):
@@ -349,45 +314,29 @@ def extra_credit(listing_id):
     gone over their 90 day limit, else return True, indicating the lister has
     never gone over their limit.
     """
-    # url = "html_files/listing_" + str(listing_id)+".html"
-    # https://www.airbnb.com/rooms/1623609
+
+
+    content = open("html_files/listing_" + str(listing_id) + "_reviews.html", 'r')
+    content2 = content.read()
+    soup = BeautifulSoup(content2, 'html.parser')
+    y = soup.find_all("li", class_ ="_1f1oir5")
+    years = []
+    for el in y:
+       years.append(el.get_text()[-4:])
+    years.sort()
+    unique_years = list(set(years))
+    counts = {}
+    for year in unique_years:
+        counts[year]=0
+    for year in years:
+        counts[year]+=1
+    for value in counts.values():
+        if value > 90:
+            return False
+    return True
     
-    # doc = BeautifulSoup(f,"html.parser")
-    # print(doc.prettify())
-    f = open("html_files/listing_" + str(listing_id) + "_reviews.html", "r")
 
-    # f.read("listing_" + str(listing_id) + "_reviews.html")
-    lines =f.readlines()
-    count = 0
-    for line in lines:
-        if "October" in line:
-            print(line)
-            count += 1
-    print(count)
 
-    #put all the months and years into a list  
-    #find the lowest per and highest year 
-    #make a list of that length
-    #make a count var
-    #while still on each year, count how many reviews per year
-    #if count is ever greater than 90, return False
-    #else return True
-
-    # import requests as rq
-    # #url = "https://www.airbnb.com/rooms/" +  " 1944564" +"/reviews"
-    # url = "https://www.airbnb.com/rooms/1944564/reviews?source_impression_id=p3_1668045192_kz69%2FW7WXd2zh9xq"
-    # HEADERS = ({
-    # 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit / 537.36(KHTML, like Gecko) Chrome / 44.0.2403.157 Safari / 537.36',
-    # 'Accept-Language': 'en-US, en;q=0.5'})
-    # page_reviews = rq.get(url, headers=HEADERS)
-    # doc = BeautifulSoup(page_reviews.text,"html.parser")
-    # html_to_write = doc.prettify()
-    # f = open("test.html", "w")
-    # f.write(html_to_write)
-    # f.close()
-  
-
-# str(listing_id)
 class TestCases(unittest.TestCase):
 
     def test_get_listings_from_search_results(self):
@@ -400,22 +349,13 @@ class TestCases(unittest.TestCase):
         self.assertEqual(type(listings), list)
         # check that each item in the list is a tuple
         for i in range(0, len(listings)):
-            # print(type(i))
-            # print(type(listings[i]))
             self.assertEqual(type(listings[i]), tuple)
 
         # check that the first title, cost, and listing id tuple is correct (open the search results html and find it)
-        #title 
         self.assertEqual(listings[0], ("Loft in Mission District", 210, '1944564'))
-        # # cost 
-        # self.assertEqual(listings[0][1], 210)
-        # #listing id
-        # self.assertEqual(listings[0][2], "1944564")
         
         # check that the last title is correct (open the search results html and find it)
         self.assertEqual(listings[-1][0], "Guest suite in Mission District")
-        # self.assertEqual(listings[-1][1], 238)
-        # self.assertEqual(listings[-1][2], "32871760")
 
 
     def test_get_listing_information(self):
@@ -491,27 +431,31 @@ class TestCases(unittest.TestCase):
         self.assertEqual(csv_lines[-1], ["Apartment in Mission District","399","28668414","Pending","Entire Room","2"])
 
 
-    # def test_check_policy_numbers(self):
-    #     # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
-    #     # and save the result to a variable
-    #     detailed_database = get_detailed_listing_database("html_files/mission_district_search_results.html")
-    #     # call check_policy_numbers on the variable created above and save the result as a variable
-    #     invalid_listings = check_policy_numbers(detailed_database)
-    #     # check that the return value is a list
-    #     self.assertEqual(type(invalid_listings), list)
-    #     # check that there is exactly one element in the string
-    #     self.assertEqual(len(invalid_listings), 1)
-    #     # check that the element in the list is a string
-    #     self.assertEqual(type(invalid_listings[0]), str)
-    #     # check that the first element in the list is '16204265'
+    def test_check_policy_numbers(self):
+        # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
+        # and save the result to a variable
+        detailed_database = get_detailed_listing_database("html_files/mission_district_search_results.html")
+        # call check_policy_numbers on the variable created above and save the result as a variable
+        invalid_listings = check_policy_numbers(detailed_database)
+        # check that the return value is a list
+        self.assertEqual(type(invalid_listings), list)
+        # check that there is exactly one element in the string
+        self.assertEqual(len(invalid_listings), 1)
+        # check that the element in the list is a string
+        self.assertEqual(type(invalid_listings[0]), str)
+        # check that the first element in the list is '16204265'
         
-    #     # TO DO check it is not anything nested that needs invalid_listings[][] 
-    #     self.assertEqual(invalid_listings[0], "16204265")
+        # TO DO check it is not anything nested that needs invalid_listings[][] 
+        self.assertEqual(invalid_listings[0], "16204265")
         
+
+
+
 
 if __name__ == '__main__':
     database = get_detailed_listing_database("html_files/mission_district_search_results.html")
     write_csv(database, "airbnb_dataset.csv")
-    extra_credit(1944564)
     check_policy_numbers(database)
+    extra_credit("16204265")
+    extra_credit("1944564")
     unittest.main(verbosity=2)
