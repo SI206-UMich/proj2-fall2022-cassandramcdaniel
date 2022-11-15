@@ -6,7 +6,7 @@ import os
 import csv
 import unittest
 
-# Your name: Cassandra 
+# Your name: Cassandra McDaniel
 # Your student id: 2551 6619
 # Your email: cassmcda@umich.edu
 # List who you have worked with on this project: Rachel Abellera, Cristina Costin
