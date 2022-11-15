@@ -9,7 +9,7 @@ import unittest
 # Your name: Cassandra McDaniel
 # Your student id: 2551 6619
 # Your email: cassmcda@umich.edu
-# List who you have worked with on this project: Cristina Costin,  Rachel Abellera
+# List who you have worked with on this project: Cristina Costin, Rachel Abellera
 
 
 def get_listings_from_search_results(html_file):
